@@ -62,6 +62,10 @@ The tool uses multiple heuristics to identify suspicious processes:
 ### Build from source:
 
 ```bash
+
+# Select the directory
+cd src
+
 # Compile
 make
 
