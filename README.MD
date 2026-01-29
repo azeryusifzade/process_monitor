@@ -63,8 +63,11 @@ The tool uses multiple heuristics to identify suspicious processes:
 
 ```bash
 
+# Git Clone
+git clone https://github.com/azeryusifzade/process_monitor.git
+
 # Select the directory
-cd src
+cd process_monitor/src
 
 # Compile
 make
