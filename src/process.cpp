@@ -16,11 +16,9 @@
 #include <pwd.h>
 #endif
 
-// Constants
 namespace {
     constexpr int DEFAULT_MIN_PID_FOR_EMPTY_CMD = 1000;
     
-    // Known system process names
     const std::vector<std::string> SYSTEM_PROCESS_PREFIXES = {
         "kworker", "ksoftirqd", "rcu", "migration", "irq/",
         "idle_inject", "cpuhp", "kswapd", "watchdog", "jbd2",
@@ -28,13 +26,12 @@ namespace {
         "khungtaskd", "oom_reaper", "writeback", "kcompactd",
         "ksmd", "khugepaged", "crypto", "kintegrityd", "kblockd",
         "ata_sff", "md", "edac-poller", "devfreq_wq", "watchdogd",
-        "iprt-VBoxTscThread", "krfcommd", "psimon"  // VirtualBox, Bluetooth, etc.
+        "iprt-VBoxTscThread", "krfcommd", "psimon"  
     };
 }
 
 #ifdef __linux__
 
-// RAII wrapper for DIR*
 class DirHandle {
 public:
     explicit DirHandle(const char* path) : m_dir(opendir(path)) {
@@ -51,7 +48,6 @@ public:
         }
     }
     
-    // Disable copying
     DirHandle(const DirHandle&) = delete;
     DirHandle& operator=(const DirHandle&) = delete;
     
@@ -66,14 +62,13 @@ private:
 ProcessMonitor::ProcessMonitor() 
     : m_verbose(false)
     , m_minPidForEmptyCmdCheck(DEFAULT_MIN_PID_FOR_EMPTY_CMD)
-    , m_enableWhitelist(true) {  // Enable whitelist by default
+    , m_enableWhitelist(true) { 
     loadDefaultWhitelists();
 }
 
 ProcessMonitor::~ProcessMonitor() = default;
 
 void ProcessMonitor::loadDefaultWhitelists() {
-    // Whitelist common legitimate process names
     m_whitelistedProcessNames.insert("steam");
     m_whitelistedProcessNames.insert("steamwebhelper");
     m_whitelistedProcessNames.insert("srt-logger");
@@ -90,19 +85,15 @@ void ProcessMonitor::loadDefaultWhitelists() {
     m_whitelistedProcessNames.insert("spotify");
     m_whitelistedProcessNames.insert("telegram-desktop");
     
-    // VirtualBox processes
     m_whitelistedProcessNames.insert("VBoxClient");
     m_whitelistedProcessNames.insert("VBoxService");
     m_whitelistedProcessNames.insert("iprt-VBoxTscThread");
     
-    // Bluetooth
     m_whitelistedProcessNames.insert("krfcommd");
     m_whitelistedProcessNames.insert("bluetoothd");
     
-    // System monitoring
     m_whitelistedProcessNames.insert("psimon");
     
-    // Whitelist path prefixes (directories that are safe)
     m_whitelistedPathPrefixes.insert("/.local/");
     m_whitelistedPathPrefixes.insert("/.vscode");
     m_whitelistedPathPrefixes.insert("/.config/");
@@ -152,21 +143,17 @@ bool ProcessMonitor::isWhitelistedPath(const std::string& path) const {
         return false;
     }
     
-    // Check exact path matches
     if (m_whitelistedPaths.find(path) != m_whitelistedPaths.end()) {
         return true;
     }
     
-    // Check path prefix matches
     for (const auto& prefix : m_whitelistedPathPrefixes) {
         if (path.find(prefix) != std::string::npos) {
             return true;
         }
     }
     
-    // Check if it's in user's home directory with common app directories
     if (isInHomeDirectory(path)) {
-        // Allow common application directories in home
         if (contains(path, "/.local/") || 
             contains(path, "/.vscode") ||
             contains(path, "/.config/") ||
@@ -185,7 +172,6 @@ bool ProcessMonitor::isWhitelisted(const Process& p) const {
         return false;
     }
     
-    // Check if process name is whitelisted
     if (isWhitelistedName(p.name)) {
         if (m_verbose) {
             std::cout << "  [WHITELIST] Process name '" << p.name << "' is whitelisted" << std::endl;
@@ -193,7 +179,6 @@ bool ProcessMonitor::isWhitelisted(const Process& p) const {
         return true;
     }
     
-    // Check if path is whitelisted
     if (isWhitelistedPath(p.path)) {
         if (m_verbose) {
             std::cout << "  [WHITELIST] Path '" << p.path << "' is whitelisted" << std::endl;
@@ -214,11 +199,6 @@ bool ProcessMonitor::isSystemName(const std::string& name) const {
 }
 
 bool ProcessMonitor::isRealSystemProcess(const Process& p) const {
-    // Real system/kernel processes have:
-    // 1. System-like name
-    // 2. UID 0 (root)
-    // 3. No executable path (kernel threads)
-    // 4. Empty command line
     return isSystemName(p.name) &&
            p.uid == 0 &&
            (p.path == "unknown" || p.path.empty()) &&
@@ -307,8 +287,7 @@ bool ProcessMonitor::readProcessStartTime(int pid, unsigned long long& startTime
         return false;
     }
     
-    // The start time is the 22nd field in /proc/[pid]/stat
-    // Format: pid (comm) state ... starttime ...
+    
     size_t lastParen = line.rfind(')');
     if (lastParen == std::string::npos) {
         return false;
@@ -337,7 +316,6 @@ std::optional<Process> ProcessMonitor::getProcessInfo(int pid) {
     Process p;
     p.pid = pid;
     
-    // Try to read all process information
     if (!readProcessName(pid, p.name)) {
         return std::nullopt;
     }
@@ -347,7 +325,6 @@ std::optional<Process> ProcessMonitor::getProcessInfo(int pid) {
     readProcessState(pid, p.state);
     readProcessStartTime(pid, p.startTime);
     
-    // UID is important, fail if we can't get it
     if (!getProcessUID(pid, p.uid)) {
         if (m_verbose) {
             std::cerr << "Warning: Could not get UID for PID " << pid << std::endl;
@@ -365,7 +342,6 @@ std::vector<Process> ProcessMonitor::listProcesses() {
         struct dirent* entry;
         
         while ((entry = readdir(dir.get())) != nullptr) {
-            // Check if directory name is numeric (PID)
             if (!isNumeric(entry->d_name)) {
                 continue;
             }
@@ -375,7 +351,6 @@ std::vector<Process> ProcessMonitor::listProcesses() {
                 continue;
             }
             
-            // Try to get process info
             auto processOpt = getProcessInfo(pid);
             if (processOpt.has_value()) {
                 processes.push_back(processOpt.value());
@@ -399,7 +374,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
     std::vector<Process> suspicious;
     
     for (const auto& p : procs) {
-        // Check whitelist first
         if (isWhitelisted(p)) {
             continue;
         }
@@ -407,7 +381,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
         bool isSuspicious = false;
         std::string reason;
         
-        // Check 1: Fake system process (has system name but not real system process)
         if (isSystemName(p.name) && !isRealSystemProcess(p)) {
             isSuspicious = true;
             reason = "Fake system process name";
@@ -418,7 +391,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
             }
         }
         
-        // Check 2: Running from temporary directory (not in home)
         if (isTempPath(p.path) && !isInHomeDirectory(p.path)) {
             isSuspicious = true;
             reason = "Running from temporary directory";
@@ -429,7 +401,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
             }
         }
         
-        // Check 3: Running from hidden directory (but not common app directories)
         if (isHiddenPath(p.path) && !isWhitelistedPath(p.path)) {
             isSuspicious = true;
             reason = "Running from hidden directory";
@@ -440,7 +411,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
             }
         }
         
-        // Check 4: User process with empty command line (unusual)
         if (p.cmdline.empty() && 
             p.pid >= m_minPidForEmptyCmdCheck && 
             !isRealSystemProcess(p)) {
@@ -453,7 +423,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
             }
         }
         
-        // Check 5: Suspicious characters in name
         if (hasSuspiciousChars(p.name)) {
             isSuspicious = true;
             reason = "Suspicious characters in process name";
@@ -464,9 +433,7 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
             }
         }
         
-        // Check 6: Executable path doesn't exist (deleted executable - common in malware)
         if (!p.path.empty() && p.path != "unknown" && !pathExists(p.path)) {
-            // Check if it's a deleted file
             if (p.path.find("(deleted)") != std::string::npos) {
                 isSuspicious = true;
                 reason = "Running from deleted executable";
@@ -487,7 +454,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
 }
 
 #else
-// Non-Linux implementations (stubs for portability)
 
 std::optional<Process> ProcessMonitor::getProcessInfo(int pid) {
     throw ProcessMonitorException("Process monitoring not supported on this platform");
