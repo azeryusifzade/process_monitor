@@ -76,14 +76,6 @@ make
 ./process_monitor
 ```
 
-### Install system-wide (optional):
-
-```bash
-sudo make install
-```
-
-This installs the binary to `/usr/local/bin/process_monitor`.
-
 ## Usage
 
 ### Basic Usage
