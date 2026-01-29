@@ -394,8 +394,7 @@ This tool is for legitimate security monitoring and research only. Users are res
 
 ## Author
 
-Enhanced Linux Process Monitor with intelligent whitelist filtering.
-
+Yusifzade Azer
 ## Version
 
 Version 2.0.0 - January 2026
