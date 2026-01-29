@@ -53,7 +53,7 @@ The tool uses multiple heuristics to identify suspicious processes:
 
 ## Requirements
 
-- Linux operating system (tested on Ubuntu 24.04)
+- Linux operating system 
 - C++17 compatible compiler (GCC 7+ or Clang 5+)
 - Standard build tools (`make`)
 
