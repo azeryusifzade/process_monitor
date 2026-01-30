@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 
+// Color codes for terminal output
 namespace Color {
     const char* RESET = "\033[0m";
     const char* RED = "\033[31m";
@@ -15,6 +16,7 @@ namespace Color {
     const char* BOLD = "\033[1m";
 }
 
+// Print usage information
 void printUsage(const char* programName) {
     std::cout << "Usage: " << programName << " [OPTIONS]\n\n"
               << "Linux Process Monitor - Detect suspicious processes\n\n"
@@ -31,6 +33,7 @@ void printUsage(const char* programName) {
               << std::endl;
 }
 
+// Print process information in a formatted way
 void printProcess(const Process& p, bool useColor = true) {
     const char* suspColor = useColor ? Color::RED : "";
     const char* labelColor = useColor ? Color::CYAN : "";
@@ -51,6 +54,7 @@ void printProcess(const Process& p, bool useColor = true) {
     std::cout << std::endl;
 }
 
+// Print summary table
 void printSummary(const std::vector<Process>& all, 
                   const std::vector<Process>& suspicious,
                   bool useColor = true) {
@@ -88,6 +92,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> customWhitelistNames;
     std::vector<std::string> customWhitelistPaths;
     
+    // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         
@@ -142,7 +147,8 @@ int main(int argc, char* argv[]) {
         monitor.setVerbose(verbose);
         monitor.setMinPidForEmptyCmdCheck(minPid);
         monitor.setEnableWhitelist(enableWhitelist);
-    
+        
+        // Add custom whitelist entries
         for (const auto& name : customWhitelistNames) {
             monitor.addWhitelistedProcess(name);
             if (verbose) {
@@ -157,6 +163,7 @@ int main(int argc, char* argv[]) {
             }
         }
         
+        // Handle specific PID query
         if (specificPid > 0) {
             if (verbose) {
                 std::cout << "Querying information for PID " << specificPid << "...\n\n";
@@ -172,6 +179,7 @@ int main(int argc, char* argv[]) {
             }
         }
         
+        // Scan all processes
         const char* boldColor = useColor ? Color::BOLD : "";
         const char* reset = useColor ? Color::RESET : "";
         
@@ -195,6 +203,7 @@ int main(int argc, char* argv[]) {
         
         auto suspicious = monitor.analyzeSuspicious(processes);
         
+        // Print results
         if (showAll) {
             std::cout << "\n" << boldColor << "=== ALL PROCESSES ===" << reset << "\n\n";
             for (const auto& p : processes) {
@@ -233,6 +242,7 @@ int main(int argc, char* argv[]) {
         
         printSummary(processes, suspicious, useColor);
         
+        // Exit code: 0 if no suspicious processes, 1 if found
         return suspicious.empty() ? 0 : 1;
         
     } catch (const ProcessMonitorException& e) {
