@@ -6,6 +6,7 @@
 #include <optional>
 #include <stdexcept>
 #include <set>
+#include <map>
 
 // Represents a running process with all relevant information
 struct Process {
@@ -52,8 +53,13 @@ public:
     // Whitelist management
     void addWhitelistedPath(const std::string& path);
     void addWhitelistedProcess(const std::string& name);
+    void addWhitelistedProcessWithPath(const std::string& name, const std::string& pathPrefix);
     void loadDefaultWhitelists();
     void clearWhitelists();
+    
+    // Load whitelists from files
+    bool loadWhitelistFromFile(const std::string& filepath);
+    bool loadWhitelistsFromDirectory(const std::string& dirpath);
     
 private:
     bool m_verbose;
@@ -64,18 +70,25 @@ private:
     std::set<std::string> m_whitelistedProcessNames;
     std::set<std::string> m_whitelistedPathPrefixes;
     
+    // Map of process name -> required path prefixes
+    // If a name is in this map, it MUST match one of the path prefixes
+    std::map<std::string, std::vector<std::string>> m_processNameToRequiredPaths;
+    
     // Helper methods
     bool isSystemName(const std::string& name) const;
     bool isRealSystemProcess(const Process& p) const;
     bool isWhitelisted(const Process& p) const;
     bool isWhitelistedPath(const std::string& path) const;
-    bool isWhitelistedName(const std::string& name) const;
+    bool isWhitelistedNameAndPath(const std::string& name, const std::string& path) const;
     
     bool readProcessName(int pid, std::string& name) const;
     bool readProcessPath(int pid, std::string& path) const;
     bool readProcessCmdline(int pid, std::string& cmdline) const;
     bool readProcessState(int pid, std::string& state) const;
     bool readProcessStartTime(int pid, unsigned long long& startTime) const;
+    
+    // Whitelist file parsing
+    void parseWhitelistLine(const std::string& line);
 };
 
 #endif // PROCESS_H
