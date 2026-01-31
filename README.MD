@@ -1,4 +1,4 @@
-# Linux Process Monitor v2.0
+# Linux Process Monitor
 
 A robust C++ application for detecting suspicious processes on Linux systems with intelligent whitelist filtering to reduce false positives from legitimate software.
 
