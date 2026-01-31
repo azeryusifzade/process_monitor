@@ -73,50 +73,78 @@ ProcessMonitor::ProcessMonitor()
 ProcessMonitor::~ProcessMonitor() = default;
 
 void ProcessMonitor::loadDefaultWhitelists() {
-    // Whitelist common legitimate process names
-    m_whitelistedProcessNames.insert("steam");
-    m_whitelistedProcessNames.insert("steamwebhelper");
-    m_whitelistedProcessNames.insert("srt-logger");
-    m_whitelistedProcessNames.insert("srt-bwrap");
-    m_whitelistedProcessNames.insert("steam-runtime-l");
-    m_whitelistedProcessNames.insert("cpptools");
-    m_whitelistedProcessNames.insert("cpptools-srv");
-    m_whitelistedProcessNames.insert("code");
-    m_whitelistedProcessNames.insert("electron");
-    m_whitelistedProcessNames.insert("chrome");
-    m_whitelistedProcessNames.insert("firefox");
-    m_whitelistedProcessNames.insert("Discord");
-    m_whitelistedProcessNames.insert("slack");
-    m_whitelistedProcessNames.insert("spotify");
-    m_whitelistedProcessNames.insert("telegram-desktop");
+    // Whitelist common legitimate process names WITH their expected paths
+    // This prevents malware from evading detection by using whitelisted names
+    
+    // Steam processes - must be in legitimate Steam directories
+    addWhitelistedProcessWithPath("steam", "/.local/share/Steam/");
+    addWhitelistedProcessWithPath("steam", "/.steam/");
+    addWhitelistedProcessWithPath("steamwebhelper", "/.local/share/Steam/");
+    addWhitelistedProcessWithPath("steamwebhelper", "/.steam/");
+    addWhitelistedProcessWithPath("srt-logger", "/.local/share/Steam/");
+    addWhitelistedProcessWithPath("srt-bwrap", "/.local/share/Steam/");
+    addWhitelistedProcessWithPath("steam-runtime-l", "/.local/share/Steam/");
+    
+    // VS Code processes
+    addWhitelistedProcessWithPath("cpptools", "/.vscode/");
+    addWhitelistedProcessWithPath("cpptools-srv", "/.vscode/");
+    addWhitelistedProcessWithPath("code", "/usr/share/code/");
+    addWhitelistedProcessWithPath("code", "/opt/visual-studio-code/");
+    addWhitelistedProcessWithPath("code", "/snap/code/");
+    
+    // Electron apps
+    addWhitelistedProcessWithPath("electron", "/.config/");
+    addWhitelistedProcessWithPath("electron", "/opt/");
+    addWhitelistedProcessWithPath("electron", "/usr/lib/");
+    
+    // Browsers
+    addWhitelistedProcessWithPath("chrome", "/opt/google/chrome/");
+    addWhitelistedProcessWithPath("chrome", "/usr/bin/");
+    addWhitelistedProcessWithPath("firefox", "/usr/lib/firefox/");
+    addWhitelistedProcessWithPath("firefox", "/usr/bin/");
+    addWhitelistedProcessWithPath("firefox", "/snap/firefox/");
+    
+    // Communication apps
+    addWhitelistedProcessWithPath("Discord", "/.config/discord/");
+    addWhitelistedProcessWithPath("Discord", "/opt/discord/");
+    addWhitelistedProcessWithPath("slack", "/.config/Slack/");
+    addWhitelistedProcessWithPath("slack", "/usr/lib/slack/");
+    addWhitelistedProcessWithPath("telegram-desktop", "/usr/bin/");
+    addWhitelistedProcessWithPath("telegram-desktop", "/.local/share/TelegramDesktop/");
+    
+    // Music/Media
+    addWhitelistedProcessWithPath("spotify", "/usr/share/spotify/");
+    addWhitelistedProcessWithPath("spotify", "/snap/spotify/");
+    addWhitelistedProcessWithPath("spotify", "/opt/spotify/");
     
     // VirtualBox processes
-    m_whitelistedProcessNames.insert("VBoxClient");
-    m_whitelistedProcessNames.insert("VBoxService");
-    m_whitelistedProcessNames.insert("iprt-VBoxTscThread");
+    addWhitelistedProcessWithPath("VBoxClient", "/usr/bin/");
+    addWhitelistedProcessWithPath("VBoxService", "/usr/sbin/");
+    addWhitelistedProcessWithPath("iprt-VBoxTscThread", "/usr/");
     
-    // Bluetooth
-    m_whitelistedProcessNames.insert("krfcommd");
-    m_whitelistedProcessNames.insert("bluetoothd");
+    // System processes that might appear with paths
+    addWhitelistedProcessWithPath("bluetoothd", "/usr/lib/");
+    addWhitelistedProcessWithPath("bluetoothd", "/usr/libexec/");
     
-    // System monitoring
-    m_whitelistedProcessNames.insert("psimon");
-    
-    // Whitelist path prefixes (directories that are safe)
-    m_whitelistedPathPrefixes.insert("/.local/");
-    m_whitelistedPathPrefixes.insert("/.vscode");
-    m_whitelistedPathPrefixes.insert("/.config/");
-    m_whitelistedPathPrefixes.insert("/.cache/");
+    // Whitelist path prefixes (directories that are generally safe)
+    m_whitelistedPathPrefixes.insert("/usr/bin/");
+    m_whitelistedPathPrefixes.insert("/usr/sbin/");
+    m_whitelistedPathPrefixes.insert("/usr/lib/");
+    m_whitelistedPathPrefixes.insert("/usr/libexec/");
+    m_whitelistedPathPrefixes.insert("/usr/share/");
+    m_whitelistedPathPrefixes.insert("/bin/");
+    m_whitelistedPathPrefixes.insert("/sbin/");
+    m_whitelistedPathPrefixes.insert("/lib/");
+    m_whitelistedPathPrefixes.insert("/lib64/");
     m_whitelistedPathPrefixes.insert("/snap/");
     m_whitelistedPathPrefixes.insert("/opt/");
-    m_whitelistedPathPrefixes.insert("/usr/lib/");
-    m_whitelistedPathPrefixes.insert("/usr/share/");
-    m_whitelistedPathPrefixes.insert("/var/lib/");
+    m_whitelistedPathPrefixes.insert("/var/lib/snapd/");
     
     if (m_verbose) {
-        std::cout << "Loaded " << m_whitelistedProcessNames.size() 
-                  << " whitelisted process names and " 
-                  << m_whitelistedPathPrefixes.size() 
+        std::cout << "Loaded default whitelists:\n"
+                  << "  - " << m_processNameToRequiredPaths.size() 
+                  << " process names with required paths\n"
+                  << "  - " << m_whitelistedPathPrefixes.size() 
                   << " whitelisted path prefixes" << std::endl;
     }
 }
@@ -126,21 +154,194 @@ void ProcessMonitor::addWhitelistedPath(const std::string& path) {
 }
 
 void ProcessMonitor::addWhitelistedProcess(const std::string& name) {
+    // Adding a process without path requirements - be careful with this!
     m_whitelistedProcessNames.insert(name);
+}
+
+void ProcessMonitor::addWhitelistedProcessWithPath(const std::string& name, 
+                                                    const std::string& pathPrefix) {
+    // This is the SECURE way to whitelist - requires both name AND path to match
+    m_processNameToRequiredPaths[name].push_back(pathPrefix);
 }
 
 void ProcessMonitor::clearWhitelists() {
     m_whitelistedPaths.clear();
     m_whitelistedProcessNames.clear();
     m_whitelistedPathPrefixes.clear();
+    m_processNameToRequiredPaths.clear();
 }
 
-bool ProcessMonitor::isWhitelistedName(const std::string& name) const {
+void ProcessMonitor::parseWhitelistLine(const std::string& line) {
+    std::string trimmedLine = trim(line);
+    
+    // Skip empty lines and comments
+    if (trimmedLine.empty() || trimmedLine[0] == '#') {
+        return;
+    }
+    
+    // Check if line contains a path separator (name:path format)
+    size_t colonPos = trimmedLine.find(':');
+    if (colonPos != std::string::npos) {
+        // Format: name:path
+        std::string name = trim(trimmedLine.substr(0, colonPos));
+        std::string path = trim(trimmedLine.substr(colonPos + 1));
+        
+        if (!name.empty() && !path.empty()) {
+            addWhitelistedProcessWithPath(name, path);
+            if (m_verbose) {
+                std::cout << "  Whitelisted: " << name << " -> " << path << "\n";
+            }
+        }
+    } else {
+        // Simple name only - use with caution!
+        if (!trimmedLine.empty()) {
+            addWhitelistedProcess(trimmedLine);
+            if (m_verbose) {
+                std::cout << "  Whitelisted (name only): " << trimmedLine << "\n";
+            }
+        }
+    }
+}
+
+bool ProcessMonitor::loadWhitelistFromFile(const std::string& filepath) {
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        if (m_verbose) {
+            std::cerr << "Warning: Could not open whitelist file: " << filepath << std::endl;
+        }
+        return false;
+    }
+    
+    if (m_verbose) {
+        std::cout << "Loading whitelist from: " << filepath << std::endl;
+    }
+    
+    std::string line;
+    int lineCount = 0;
+    while (std::getline(file, line)) {
+        parseWhitelistLine(line);
+        lineCount++;
+    }
+    
+    if (m_verbose) {
+        std::cout << "Processed " << lineCount << " lines from " << filepath << std::endl;
+    }
+    
+    return true;
+}
+
+bool ProcessMonitor::loadWhitelistsFromDirectory(const std::string& dirpath) {
+    if (!pathExists(dirpath)) {
+        if (m_verbose) {
+            std::cerr << "Warning: Whitelist directory does not exist: " 
+                      << dirpath << std::endl;
+        }
+        return false;
+    }
+    
+    if (m_verbose) {
+        std::cout << "Loading whitelists from directory: " << dirpath << std::endl;
+    }
+    
+#ifdef __linux__
+    try {
+        DIR* dir = opendir(dirpath.c_str());
+        if (!dir) {
+            if (m_verbose) {
+                std::cerr << "Warning: Could not open directory: " << dirpath << std::endl;
+            }
+            return false;
+        }
+        
+        struct dirent* entry;
+        int filesLoaded = 0;
+        
+        while ((entry = readdir(dir)) != nullptr) {
+            std::string filename = entry->d_name;
+            
+            // Skip . and .. and hidden files
+            if (filename[0] == '.') {
+                continue;
+            }
+            
+            // Only process .txt and .conf files
+            if (filename.size() < 4) {
+                continue;
+            }
+            
+            std::string ext = filename.substr(filename.size() - 4);
+            if (ext != ".txt" && ext != "conf") {
+                ext = filename.substr(filename.size() - 5);
+                if (ext != ".conf") {
+                    continue;
+                }
+            }
+            
+            std::string fullpath = dirpath;
+            if (fullpath.back() != '/') {
+                fullpath += '/';
+            }
+            fullpath += filename;
+            
+            // Check if it's a regular file
+            struct stat st;
+            if (stat(fullpath.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+                if (loadWhitelistFromFile(fullpath)) {
+                    filesLoaded++;
+                }
+            }
+        }
+        
+        closedir(dir);
+        
+        if (m_verbose) {
+            std::cout << "Loaded " << filesLoaded << " whitelist files from " 
+                      << dirpath << std::endl;
+        }
+        
+        return filesLoaded > 0;
+        
+    } catch (const std::exception& e) {
+        if (m_verbose) {
+            std::cerr << "Error loading whitelists from directory: " 
+                      << e.what() << std::endl;
+        }
+        return false;
+    }
+#else
+    if (m_verbose) {
+        std::cerr << "Directory whitelist loading not supported on this platform" << std::endl;
+    }
+    return false;
+#endif
+}
+
+bool ProcessMonitor::isWhitelistedNameAndPath(const std::string& name, 
+                                               const std::string& path) const {
     if (!m_enableWhitelist) {
         return false;
     }
     
-    return m_whitelistedProcessNames.find(name) != m_whitelistedProcessNames.end();
+    // Check if this name has required paths
+    auto it = m_processNameToRequiredPaths.find(name);
+    if (it != m_processNameToRequiredPaths.end()) {
+        // Name is in the map - check if path matches any required prefix
+        const auto& requiredPaths = it->second;
+        for (const auto& requiredPath : requiredPaths) {
+            if (path.find(requiredPath) != std::string::npos) {
+                return true;  // Both name AND path match - legitimate!
+            }
+        }
+        // Name matches but path doesn't - this is SUSPICIOUS!
+        return false;
+    }
+    
+    // Check if name is in the simple whitelist (less secure)
+    if (m_whitelistedProcessNames.find(name) != m_whitelistedProcessNames.end()) {
+        return true;
+    }
+    
+    return false;
 }
 
 bool ProcessMonitor::isWhitelistedPath(const std::string& path) const {
@@ -157,9 +358,9 @@ bool ProcessMonitor::isWhitelistedPath(const std::string& path) const {
         return true;
     }
     
-    // Check path prefix matches
+    // Check path prefix matches (system directories)
     for (const auto& prefix : m_whitelistedPathPrefixes) {
-        if (path.find(prefix) != std::string::npos) {
+        if (path.find(prefix) == 0) {  // Must start with prefix
             return true;
         }
     }
@@ -171,8 +372,7 @@ bool ProcessMonitor::isWhitelistedPath(const std::string& path) const {
             contains(path, "/.vscode") ||
             contains(path, "/.config/") ||
             contains(path, "/.cache/") ||
-            contains(path, "/snap/") ||
-            contains(path, "/opt/")) {
+            contains(path, "/snap/")) {
             return true;
         }
     }
@@ -185,20 +385,31 @@ bool ProcessMonitor::isWhitelisted(const Process& p) const {
         return false;
     }
     
-    // Check if process name is whitelisted
-    if (isWhitelistedName(p.name)) {
+    // CRITICAL FIX: Check both name AND path together for processes with required paths
+    if (isWhitelistedNameAndPath(p.name, p.path)) {
         if (m_verbose) {
-            std::cout << "  [WHITELIST] Process name '" << p.name << "' is whitelisted" << std::endl;
+            std::cout << "  [WHITELIST] Process '" << p.name 
+                      << "' at path '" << p.path << "' is whitelisted" << std::endl;
         }
         return true;
     }
     
-    // Check if path is whitelisted
+    // Check if path alone is whitelisted (for system binaries)
     if (isWhitelistedPath(p.path)) {
         if (m_verbose) {
             std::cout << "  [WHITELIST] Path '" << p.path << "' is whitelisted" << std::endl;
         }
         return true;
+    }
+    
+    // If name is in required paths map but we got here, it means the path didn't match
+    // This is SUSPICIOUS - a process using a whitelisted name from wrong location!
+    if (m_processNameToRequiredPaths.find(p.name) != m_processNameToRequiredPaths.end()) {
+        if (m_verbose) {
+            std::cout << "  [SUSPICIOUS] Process '" << p.name 
+                      << "' uses whitelisted name but wrong path: " << p.path << std::endl;
+        }
+        return false;  // Explicitly not whitelisted - flag as suspicious
     }
     
     return false;
@@ -399,11 +610,6 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
     std::vector<Process> suspicious;
     
     for (const auto& p : procs) {
-        // Check whitelist first
-        if (isWhitelisted(p)) {
-            continue;
-        }
-        
         bool isSuspicious = false;
         std::string reason;
         
@@ -478,8 +684,18 @@ std::vector<Process> ProcessMonitor::analyzeSuspicious(
             }
         }
         
+        // NOW check whitelist AFTER all suspicious checks
+        // This allows us to log when something suspicious is whitelisted
         if (isSuspicious) {
-            suspicious.push_back(p);
+            if (isWhitelisted(p)) {
+                if (m_verbose) {
+                    std::cout << "  [WHITELIST] Suspicious behavior ignored for whitelisted process" 
+                              << std::endl;
+                }
+                // Don't add to suspicious list
+            } else {
+                suspicious.push_back(p);
+            }
         }
     }
     
@@ -507,5 +723,8 @@ bool ProcessMonitor::readProcessPath(int pid, std::string& path) const { return 
 bool ProcessMonitor::readProcessCmdline(int pid, std::string& cmdline) const { return false; }
 bool ProcessMonitor::readProcessState(int pid, std::string& state) const { return false; }
 bool ProcessMonitor::readProcessStartTime(int pid, unsigned long long& startTime) const { return false; }
+
+bool ProcessMonitor::loadWhitelistFromFile(const std::string& filepath) { return false; }
+bool ProcessMonitor::loadWhitelistsFromDirectory(const std::string& dirpath) { return false; }
 
 #endif
