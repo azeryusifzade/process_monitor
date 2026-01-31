@@ -201,29 +201,71 @@ bool isKnownGoodPath(const std::string& path) {
 }
 
 // Check for suspicious characters in strings
+// FIXED: More intelligent detection - only flag truly suspicious patterns
 bool hasSuspiciousChars(const std::string& str) {
     if (str.empty()) {
         return false;
     }
     
-    // Check for non-printable characters (except newline/tab which are normal)
+    // Check for non-printable characters (except newline/tab which are normal in cmdline)
     for (char c : str) {
         if (!std::isprint(static_cast<unsigned char>(c)) && 
-            c != '\n' && c != '\t' && c != '\r') {
+            c != '\n' && c != '\t' && c != '\r' && c != '\0') {
             return true;
         }
     }
     
-    // Check for suspicious character sequences that are unusual in process names
-    // Be more lenient - don't flag common characters like '-' and '_'
+    // FIXED: Only flag patterns that are truly suspicious in PROCESS NAMES
+    // Process names (from /proc/[pid]/comm) are typically simple, not full commands
+    // Characters like & and | are very rare in actual process names but common in malware
+    
+    // Check for shell metacharacters that should NEVER appear in a process name
+    // Note: Process names are just the executable name, NOT the command line
     const std::vector<std::string> suspiciousPatterns = {
-        "$", "`", ";", "|", "&", "&&", "||"
+        "`",      // Backtick - command substitution
+        "$(",     // Command substitution
+        ";",      // Command separator
+        "||",     // OR operator
+        "&&",     // AND operator
+        "|",      // Pipe (but only if not part of ||)
+        "../",    // Path traversal in name (very suspicious)
+        "\\x",    // Hex escape sequences
+        "\\u",    // Unicode escape sequences
     };
     
     for (const auto& pattern : suspiciousPatterns) {
         if (str.find(pattern) != std::string::npos) {
-            return true;
+            // Additional check for | to avoid double-flagging with ||
+            if (pattern == "|") {
+                // Only flag single | if not part of ||
+                size_t pos = str.find("|");
+                if (pos != std::string::npos) {
+                    // Check if it's not part of ||
+                    if (pos + 1 >= str.length() || str[pos + 1] != '|') {
+                        if (pos == 0 || str[pos - 1] != '|') {
+                            return true;
+                        }
+                    }
+                }
+            } else {
+                return true;
+            }
         }
+    }
+    
+    // Check for excessive special characters that might indicate obfuscation
+    // Count special chars (excluding common ones like - _ . + and space)
+    int specialCharCount = 0;
+    for (char c : str) {
+        if (!std::isalnum(static_cast<unsigned char>(c)) && 
+            c != '-' && c != '_' && c != '.' && c != ' ' && c != '+') {
+            specialCharCount++;
+        }
+    }
+    
+    // If more than 30% of the string is special characters, it's suspicious
+    if (str.length() > 0 && specialCharCount > static_cast<int>(str.length() * 0.3)) {
+        return true;
     }
     
     return false;

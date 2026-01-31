@@ -61,6 +61,10 @@ public:
     bool loadWhitelistFromFile(const std::string& filepath);
     bool loadWhitelistsFromDirectory(const std::string& dirpath);
     
+    // NEW: Try to load default config from standard locations
+    bool loadDefaultConfigFile();
+    std::vector<std::string> getDefaultConfigPaths() const;
+    
 private:
     bool m_verbose;
     int m_minPidForEmptyCmdCheck;
@@ -89,6 +93,9 @@ private:
     
     // Whitelist file parsing
     void parseWhitelistLine(const std::string& line);
+    
+    // NEW: Fallback to hardcoded defaults if no config file
+    void loadHardcodedDefaults();
 };
 
 #endif // PROCESS_H

@@ -72,9 +72,63 @@ ProcessMonitor::ProcessMonitor()
 
 ProcessMonitor::~ProcessMonitor() = default;
 
-void ProcessMonitor::loadDefaultWhitelists() {
-    // Whitelist common legitimate process names WITH their expected paths
-    // This prevents malware from evading detection by using whitelisted names
+std::vector<std::string> ProcessMonitor::getDefaultConfigPaths() const {
+    std::vector<std::string> paths;
+    
+    // Check user config first (highest priority)
+    std::string homeDir = getHomeDirectory();
+    if (!homeDir.empty()) {
+        paths.push_back(homeDir + "/.config/procmon/default-whitelist.conf");
+        paths.push_back(homeDir + "/.procmon/default-whitelist.conf");
+    }
+    
+    // Then system-wide configs
+    paths.push_back("/etc/procmon/default-whitelist.conf");
+    paths.push_back("/usr/local/etc/procmon/default-whitelist.conf");
+    
+    // Check current directory (for development/testing)
+    paths.push_back("./default-whitelist.conf");
+    paths.push_back("../default-whitelist.conf");
+    
+    return paths;
+}
+
+bool ProcessMonitor::loadDefaultConfigFile() {
+    auto configPaths = getDefaultConfigPaths();
+    
+    for (const auto& configPath : configPaths) {
+        if (pathExists(configPath)) {
+            if (m_verbose) {
+                std::cout << "Loading default configuration from: " << configPath << std::endl;
+            }
+            
+            if (loadWhitelistFromFile(configPath)) {
+                if (m_verbose) {
+                    std::cout << "Successfully loaded default configuration" << std::endl;
+                }
+                return true;
+            }
+        }
+    }
+    
+    if (m_verbose) {
+        std::cout << "No default configuration file found in standard locations:" << std::endl;
+        for (const auto& path : configPaths) {
+            std::cout << "  - " << path << std::endl;
+        }
+        std::cout << "Using hardcoded defaults..." << std::endl;
+    }
+    
+    return false;
+}
+
+void ProcessMonitor::loadHardcodedDefaults() {
+    // FALLBACK: Hardcoded whitelists if no config file is found
+    // This ensures the tool works out-of-the-box without configuration
+    
+    if (m_verbose) {
+        std::cout << "Loading hardcoded default whitelists..." << std::endl;
+    }
     
     // Steam processes - must be in legitimate Steam directories
     addWhitelistedProcessWithPath("steam", "/.local/share/Steam/");
@@ -141,11 +195,21 @@ void ProcessMonitor::loadDefaultWhitelists() {
     m_whitelistedPathPrefixes.insert("/var/lib/snapd/");
     
     if (m_verbose) {
-        std::cout << "Loaded default whitelists:\n"
+        std::cout << "Loaded hardcoded defaults:\n"
                   << "  - " << m_processNameToRequiredPaths.size() 
                   << " process names with required paths\n"
                   << "  - " << m_whitelistedPathPrefixes.size() 
                   << " whitelisted path prefixes" << std::endl;
+    }
+}
+
+void ProcessMonitor::loadDefaultWhitelists() {
+    // IMPROVED: Try to load from config file first
+    // If no config file found, fall back to hardcoded defaults
+    
+    if (!loadDefaultConfigFile()) {
+        // No config file found, use hardcoded defaults
+        loadHardcodedDefaults();
     }
 }
 
@@ -176,6 +240,18 @@ void ProcessMonitor::parseWhitelistLine(const std::string& line) {
     
     // Skip empty lines and comments
     if (trimmedLine.empty() || trimmedLine[0] == '#') {
+        return;
+    }
+    
+    // Check for PATH: prefix (path-only whitelist)
+    if (startsWith(trimmedLine, "PATH:")) {
+        std::string path = trim(trimmedLine.substr(5));
+        if (!path.empty()) {
+            addWhitelistedPath(path);
+            if (m_verbose) {
+                std::cout << "  Whitelisted path prefix: " << path << "\n";
+            }
+        }
         return;
     }
     
@@ -726,5 +802,8 @@ bool ProcessMonitor::readProcessStartTime(int pid, unsigned long long& startTime
 
 bool ProcessMonitor::loadWhitelistFromFile(const std::string& filepath) { return false; }
 bool ProcessMonitor::loadWhitelistsFromDirectory(const std::string& dirpath) { return false; }
+bool ProcessMonitor::loadDefaultConfigFile() { return false; }
+std::vector<std::string> ProcessMonitor::getDefaultConfigPaths() const { return {}; }
+void ProcessMonitor::loadHardcodedDefaults() {}
 
 #endif
