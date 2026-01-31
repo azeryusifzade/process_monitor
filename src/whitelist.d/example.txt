@@ -1,0 +1,22 @@
+# Development Tools Whitelists
+# IDEs, code editors, and development utilities
+
+# Visual Studio Code
+code:/usr/share/code/
+code:/opt/visual-studio-code/
+code:/snap/code/
+cpptools:/.vscode/
+cpptools-srv:/.vscode/
+
+# JetBrains IDEs
+idea:/opt/idea/
+pycharm:/opt/pycharm/
+webstorm:/opt/webstorm/
+
+# Other Editors
+sublime_text:/opt/sublime_text/
+atom:/usr/share/atom/
+
+# Build Tools (use cautiously - name only)
+# docker
+# podman

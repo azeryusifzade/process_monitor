@@ -1,0 +1,33 @@
+# Process Monitor Whitelist Configuration
+# Format:
+#   processname              - Whitelist by name only (less secure)
+#   processname:/path/prefix - Whitelist name with required path (more secure)
+#
+# Lines starting with # are comments
+
+# Web Browsers (with path verification)
+chrome:/opt/google/chrome/
+firefox:/usr/lib/firefox/
+firefox:/snap/firefox/
+
+# Development Tools
+code:/usr/share/code/
+code:/opt/visual-studio-code/
+vscode:/usr/share/code/
+
+# Communication Apps
+discord:/.config/discord/
+slack:/usr/lib/slack/
+zoom:/opt/zoom/
+
+# Media Players
+vlc:/usr/bin/
+spotify:/usr/share/spotify/
+spotify:/snap/spotify/
+
+# Custom Applications (examples)
+# myapp:/opt/myapp/
+# customtool:/home/user/.local/bin/
+
+# System utilities that might trigger false positives
+# Add your specific system tools here
