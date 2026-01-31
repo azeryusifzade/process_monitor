@@ -2,16 +2,11 @@
 
 A robust C++ application for detecting suspicious processes on Linux systems with intelligent whitelist filtering to reduce false positives from legitimate software.
 
-## New in v2.0
-
-- **Smart Whitelist System**: Automatically filters out known legitimate processes
-- **Home Directory Detection**: Recognizes safe application directories in user home
-- **Customizable Filtering**: Add your own whitelist entries
-- **Reduced False Positives**: Focus on real threats, not Steam or VS Code
 
 ## Features
 
 - **Fake System Process Detection**: Identifies malware masquerading as legitimate kernel processes
+- **Whitelist with directories and txt files**: You can manually add or remove paths for whitelists
 - **Temporary Directory Execution**: Flags processes running from `/tmp`, `/var/tmp`, or `/dev/shm`
 - **Hidden Path Detection**: Detects processes running from hidden directories
 - **Deleted Executable Detection**: Finds processes whose executable has been deleted (common rootkit behavior)
@@ -22,23 +17,6 @@ A robust C++ application for detecting suspicious processes on Linux systems wit
 - **Colored Output**: Easy-to-read terminal output with color coding
 - **Verbose Mode**: Detailed logging for debugging and analysis
 
-## What Gets Whitelisted by Default
-
-### Applications
-- Steam and related processes (steamwebhelper, srt-logger, etc.)
-- VS Code C++ tools (cpptools, cpptools-srv)
-- Common browsers (Chrome, Firefox)
-- Communication apps (Discord, Slack, Telegram)
-- VirtualBox components
-- Bluetooth services
-
-### Directories
-- `~/.local/` - User-installed applications
-- `~/.vscode/` - VS Code extensions
-- `~/.config/` - Application configurations
-- `~/.cache/` - Application cache
-- `/snap/` - Snap packages
-- `/opt/` - Optional software
 
 ## Detection Heuristics
 
@@ -98,6 +76,9 @@ Options:
   --no-whitelist                Disable whitelist filtering (show all detections)
   --add-whitelist-name <name>   Add process name to whitelist
   --add-whitelist-path <path>   Add path prefix to whitelist
+  --add-whitelist-name-path <n:p>     Add name with required path (SECURE) 
+  --whitelist-file <file>     Load whitelist from file 
+  --whitelist-dir <dir>       Load whitelists from directory 
 ```
 
 ### Examples
@@ -199,6 +180,11 @@ For a one-time scan with custom whitelisting:
 ```bash
 ./process_monitor --add-whitelist-name my_custom_app \
                   --add-whitelist-path /opt/custom
+```
+
+For directory of whitelist:
+```bash
+./process_monitor --whitelist-dir ./whitelist.d/
 ```
 
 ### Modifying Default Whitelist
@@ -360,28 +346,6 @@ make run-no-whitelist
 - **utils.h/cpp**: Utility functions including home directory detection
 - **main.cpp**: CLI interface and output formatting
 
-## Version History
-
-### v2.0 (Current)
-- Added intelligent whitelist system
-- Home directory detection
-- Customizable whitelist entries
-- Reduced false positives significantly
-- Better Steam/VS Code/browser support
-
-### v1.0
-- Initial release
-- Basic process detection
-- Multiple heuristics
-- No whitelist (many false positives)
-
-## Contributing
-
-Contributions welcome! Areas for improvement:
-- Additional whitelist entries for common software
-- Platform-specific detection (distributions)
-- Integration with security frameworks
-- Machine learning-based detection
 
 ## License
 
@@ -394,6 +358,5 @@ This tool is for legitimate security monitoring and research only. Users are res
 ## Author
 
 Yusifzade Azer
-## Version
 
-Version 2.0.0 - January 2026
+January 2026
