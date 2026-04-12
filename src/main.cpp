@@ -16,6 +16,17 @@ namespace Color {
     const char* BOLD = "\033[1m";
 }
 
+void printAsciiLogo() {
+    std::cout << R"(
+     ██████╗██╗   ██╗██████╗ ███████╗██████╗     █████╗ ███████╗
+    ██╔════╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗   ██╔══██╗╚══███╔╝
+    ██║      ╚████╔╝ ██████╔╝█████╗  ██████╔╝   ███████║  ███╔╝ 
+    ██║       ╚██╔╝  ██╔══██╗██╔══╝  ██╔══██╗   ██╔══██║ ███╔╝  
+    ╚██████╗   ██║   ██████╔╝███████╗██║  ██║   ██║  ██║███████╗
+     ╚═════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝  ╚═╝╚══════╝                           
+)" << std::endl;
+}
+
 // Print usage information
 void printUsage(const char* programName) {
     std::cout << "Usage: " << programName << " [OPTIONS]\n\n"
@@ -114,7 +125,12 @@ int main(int argc, char* argv[]) {
         if (arg == "-h" || arg == "--help") {
             printUsage(argv[0]);
             return 0;
-        } else if (arg == "-v" || arg == "--verbose") {
+        } 
+        else if (arg == "-ascii" || arg == "--ascii") {
+        printAsciiLogo();
+        return 0;
+        } 
+        else if (arg == "-v" || arg == "--verbose") {
             verbose = true;
         } else if (arg == "-a" || arg == "--all") {
             showAll = true;
